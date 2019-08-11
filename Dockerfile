@@ -49,9 +49,15 @@ RUN apt-get -qq update && apt-get -qq install --no-install-recommends -y \
  libc++abi1 \
  libunwind8 \
  libgcc1 \
- # VAAPI drivers for Intel hardware accel
- libva-drm2 libva2 i965-va-driver vainfo \
  && rm -rf /var/lib/apt/lists/* 
+
+RUN if [ "$(uname -i)" == 'x86_64']; \
+  then \
+  apt-get -qq update && apt-get -qq install --no-install-recommends -y \
+    # VAAPI drivers for Intel hardware accel
+    libva-drm2 libva2 i965-va-driver vainfo \
+    && rm -rf /var/lib/apt/lists/*; \
+  fi
 
 # Install core packages 
 RUN wget -q -O /tmp/get-pip.py --no-check-certificate https://bootstrap.pypa.io/get-pip.py && python3 /tmp/get-pip.py
