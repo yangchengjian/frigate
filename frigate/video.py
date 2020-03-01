@@ -161,17 +161,25 @@ def track_camera(name, config, ffmpeg_global_config, global_objects_config, dete
 
     frame = sa.create(name, shape=frame_shape, dtype=np.uint8)
 
-    # load in the mask for object detection
-    if 'mask' in config:
-        mask = cv2.imread("/config/{}".format(config['mask']), cv2.IMREAD_GRAYSCALE)
+    # load in the mask for object/motion detection
+    if 'motion_mask' in config:
+        motion_mask = cv2.imread("/config/{}".format(config['motion_mask']), cv2.IMREAD_GRAYSCALE)
     else:
-        mask = None
+        motion_mask = None
 
-    if mask is None:
-        mask = np.zeros((frame_shape[0], frame_shape[1], 1), np.uint8)
-        mask[:] = 255
+    if motion_mask is None:
+        motion_mask = np.zeros((frame_shape[0], frame_shape[1], 1), np.uint8)
+        motion_mask[:] = 255
+    if 'object_mask' in config:
+        object_mask = cv2.imread("/config/{}".format(config['object_mask']), cv2.IMREAD_GRAYSCALE)
+    else:
+        object_mask = None
 
-    motion_detector = MotionDetector(frame_shape, mask, resize_factor=6)
+    if object_mask is None:
+        object_mask = np.zeros((frame_shape[0], frame_shape[1], 1), np.uint8)
+        object_mask[:] = 255
+
+    motion_detector = MotionDetector(frame_shape, motion_mask, resize_factor=6)
     object_detector = RemoteObjectDetector(name, '/labelmap.txt', detection_queue)
 
     object_tracker = ObjectTracker(10)
@@ -300,7 +308,7 @@ def track_camera(name, config, ffmpeg_global_config, global_objects_config, dete
                     (x_min, y_min, x_max, y_max),
                     (x_max-x_min)*(y_max-y_min),
                     region)
-                if filtered(det, objects_to_track, object_filters, mask):
+                if filtered(det, objects_to_track, object_filters, object_mask):
                     continue
                 detections.append(det)
 
@@ -350,7 +358,7 @@ def track_camera(name, config, ffmpeg_global_config, global_objects_config, dete
                                 (x_min, y_min, x_max, y_max),
                                 (x_max-x_min)*(y_max-y_min),
                                 region)
-                            if filtered(det, objects_to_track, object_filters, mask):
+                            if filtered(det, objects_to_track, object_filters, object_mask):
                                 continue
                             selected_objects.append(det)
 
