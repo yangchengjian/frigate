@@ -423,25 +423,32 @@ class TrackedObjectProcessor(threading.Thread):
         self.frame_manager = SharedMemoryFrameManager()
 
         def start(camera, obj: TrackedObject, current_frame_time):
+            logger.info(f"TrackedObjectProcessor start camera: {camera}, current_frame_time: {current_frame_time}")
             self.event_queue.put(('start', camera, obj.to_dict()))
 
         def update(camera, obj: TrackedObject, current_frame_time):
+            logger.info(f"TrackedObjectProcessor update camera: {camera}, current_frame_time: {current_frame_time}")
             after = obj.to_dict()
             message = { 'before': obj.previous, 'after': after }
-            self.client.publish(f"{self.topic_prefix}/events", json.dumps(message), retain=False)
+            self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(message), retain=False)
             obj.previous = after
 
         def end(camera, obj: TrackedObject, current_frame_time):
+            logger.info(f"TrackedObjectProcessor end camera: {camera}, current_frame_time: {current_frame_time}")
             if not obj.false_positive:
                 message = { 'before': obj.previous, 'after': obj.to_dict() }
-                self.client.publish(f"{self.topic_prefix}/events", json.dumps(message), retain=False)
+                self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(message), retain=False)
             self.event_queue.put(('end', camera, obj.to_dict(include_thumbnail=True)))
         
         def snapshot(camera, obj: TrackedObject, current_frame_time):
-            self.client.publish(f"{self.topic_prefix}/{camera}/{obj.obj_data['label']}/snapshot", obj.get_jpg_bytes(), retain=True)
+            logger.info(f"TrackedObjectProcessor snapshot camera: {camera}, current_frame_time: {current_frame_time}")
+            message = { 'snapshot': base64.b64encode(obj.get_jpg_bytes()).decode('utf-8') }
+            self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(message), retain=True)
         
         def object_status(camera, object_name, status):
-            self.client.publish(f"{self.topic_prefix}/{camera}/{object_name}", status, retain=False)
+            logger.info(f"TrackedObjectProcessor object_status camera: {camera}, object_name: {object_name}, status: {status}")
+            message = { 'object_name': object_name, 'status': status }
+            self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(message), retain=False)
 
         for camera in self.config.cameras.keys():
             camera_state = CameraState(camera, self.config, self.frame_manager)
@@ -509,12 +516,14 @@ class TrackedObjectProcessor(threading.Thread):
                         zone_label[camera] = obj_counter[label] if label in obj_counter else 0
                         new_count = sum(zone_label.values())
                         if new_count != current_count:
-                            self.client.publish(f"{self.topic_prefix}/{zone}/{label}", new_count, retain=False)
+                            message = { 'zone_label': zone + '_' + label, 'new_count': new_count }
+                            self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(message), retain=False)
                     # if this is a new zone/label combo for this camera
                     else:
                         if label in obj_counter:
                             zone_label[camera] = obj_counter[label]
-                            self.client.publish(f"{self.topic_prefix}/{zone}/{label}", obj_counter[label], retain=False)
+                            message = { 'zone_label': zone + '_' + label, 'obj_counter': obj_counter[label] }
+                            self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(message), retain=False)
 
             # cleanup event finished queue
             while not self.event_processed_queue.empty():

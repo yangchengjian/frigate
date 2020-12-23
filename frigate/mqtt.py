@@ -22,9 +22,11 @@ def create_mqtt_client(config: MqttConfig):
                 logger.error("Unable to connect to MQTT: Connection refused. Error code: " + str(rc))
             
         logger.info("MQTT connected")
-        client.publish(config.topic_prefix+'/available', 'online', retain=True)       
+        # client.publish(config.topic_prefix+'/available', 'online', retain=True)  
+        client.publish(config.topic_prefix+'/attributes', '{\'status\': \'online\'}', retain=True)      
     client.on_connect = on_connect
-    client.will_set(config.topic_prefix+'/available', payload='offline', qos=1, retain=True)
+    # client.will_set(config.topic_prefix+'/available', payload='offline', qos=1, retain=True)
+    client.will_set(config.topic_prefix+'/attributes', payload='{\'status\': \'offline\'}', qos=1, retain=True)
     if not config.user is None:
         client.username_pw_set(config.user, password=config.password)
     try:

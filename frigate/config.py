@@ -754,7 +754,7 @@ class CameraConfig():
                 ffmpeg_output_args = ["-r", str(self.fps)] + ffmpeg_output_args
         if 'rtmp' in ffmpeg_input.roles and self.rtmp.enabled:
             ffmpeg_output_args = self.ffmpeg.output_args['rtmp'] + [
-                f"rtmp://127.0.0.1/live/{self.name}"
+                f"rtmp://127.0.0.1:1935/live/{self.name}"
             ] + ffmpeg_output_args
         if 'clips' in ffmpeg_input.roles and self.save_clips.enabled:
             ffmpeg_output_args = self.ffmpeg.output_args['clips'] + [
