@@ -1,0 +1,23 @@
+version: "3.6"
+services:
+  frigate:
+    container_name: frigate
+    restart: unless-stopped
+    privileged: true
+    image: blakeblackshear/frigate:0.8.0-beta2-amd64
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+      - /etc/localtime:/etc/localtime:ro
+      - /Users/yangchengjian/captcha/prg/frigate/config:/config
+      - /Users/yangchengjian/captcha/prg/frigate/clips:/media/frigate/clips      
+      - /Users/yangchengjian/captcha/prg/frigate/recordings:/media/frigate/recordings      
+      - type: tmpfs # Optional: 1GB of memory, reduces SSD/SD Card wear
+        target: /tmp/cache
+        tmpfs:
+          size: 100000000
+    ports:
+      - "5000:5000"
+      - "1935:1935" # RTMP feeds
+    environment:
+      FRIGATE_RTSP_VIEWER: "guest"
+      FRIGATE_RTSP_PASSWORD: "yangjian0101"
