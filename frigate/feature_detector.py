@@ -30,46 +30,52 @@ face_cascade = cv2.CascadeClassifier("/haarcascade_frontalface_default.xml")
 
 images = []
 
+
 def detect_age_and_gender(frame, region):
     # logger.info(
     #     f"detect_age_and_gender frame: {frame}")
     logger.info(
         f"detect_age_and_gender region: {region}")
 
-    tensor_input_raw = create_tensor_input(frame, (224, 224), region)
-    # logger.info(
-    #     f"detect_age_and_gender tensor_input_raw: {tensor_input_raw}")
+    faces = face_cascade.detectMultiScale(
+        frame, scaleFactor=1.2, minNeighbors=5)
+    for x, y, w, h in faces:
 
-    tensor_input_raw = tensor_input_raw.astype('float')
-    tensor_input_raw = tensor_input_raw / 255
-    tensor_input = np.array(tensor_input_raw, dtype=np.float32)
+        tensor_input_raw = create_tensor_input(
+        frame, (224, 224), (x, y, x + w, y + h))
+        # logger.info(
+        #     f"detect_age_and_gender tensor_input_raw: {tensor_input_raw}")
 
-    # Predict
-    # logger.info(
-    #     f"detect_age_and_gender input_details_age: {input_details_age}")
-    # logger.info(
-    #     f"detect_age_and_gender output_details_age: {output_details_age}")
-    # logger.info(
-    #     f"detect_age_and_gender tensor_input: {tensor_input}")
-   
-    interpreter_age.set_tensor(
-        input_details_age[0]['index'], tensor_input)
-    interpreter_age.invoke()
+        tensor_input_raw = tensor_input_raw.astype('float')
+        tensor_input_raw = tensor_input_raw / 255
+        tensor_input = np.array(tensor_input_raw, dtype=np.float32)
 
-    interpreter_gender.set_tensor(
-        input_details_gender[0]['index'], tensor_input)
-    interpreter_gender.invoke()
+        # Predict
+        # logger.info(
+        #     f"detect_age_and_gender input_details_age: {input_details_age}")
+        # logger.info(
+        #     f"detect_age_and_gender output_details_age: {output_details_age}")
+        # logger.info(
+        #     f"detect_age_and_gender tensor_input: {tensor_input}")
 
-    output_data_age = interpreter_age.get_tensor(
-        output_details_age[0]['index'])
-    output_data_gender = interpreter_gender.get_tensor(
-        output_details_gender[0]['index'])
+        interpreter_age.set_tensor(
+            input_details_age[0]['index'], tensor_input)
+        interpreter_age.invoke()
 
-    index_pred_age = int(np.argmax(output_data_age))
-    index_pred_gender = int(np.argmax(output_data_gender))
-    prezic_age = string_pred_age[index_pred_age]
-    prezic_gender = string_pred_gen[index_pred_gender]
+        interpreter_gender.set_tensor(
+            input_details_gender[0]['index'], tensor_input)
+        interpreter_gender.invoke()
 
-    logger.info(f"prezic_age: {prezic_age}, prezic_gender: {prezic_gender}")
+        output_data_age = interpreter_age.get_tensor(
+            output_details_age[0]['index'])
+        output_data_gender = interpreter_gender.get_tensor(
+            output_details_gender[0]['index'])
+
+        index_pred_age = int(np.argmax(output_data_age))
+        index_pred_gender = int(np.argmax(output_data_gender))
+        prezic_age = string_pred_age[index_pred_age]
+        prezic_gender = string_pred_gen[index_pred_gender]
+
+        logger.info(f"prezic_age: {prezic_age}, prezic_gender: {prezic_gender}")
 
     return prezic_age, prezic_gender, frame

@@ -426,11 +426,11 @@ class TrackedObjectProcessor(threading.Thread):
 
         def start(camera, obj: TrackedObject, current_frame_time):
             logger.info(f"TrackedObjectProcessor start camera: {camera}, current_frame_time: {current_frame_time}")
-            detect_age_and_gender(obj.frame_cache[current_frame_time], obj.thumbnail_data['region'])
             self.event_queue.put(('start', camera, obj.to_dict()))
 
         def update(camera, obj: TrackedObject, current_frame_time):
             logger.info(f"TrackedObjectProcessor update camera: {camera}, current_frame_time: {current_frame_time}")
+            detect_age_and_gender(obj.frame_cache[current_frame_time], obj.thumbnail_data['region'])
             after = obj.to_dict()
             message = { 'before': obj.previous, 'after': after }
             self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(message), retain=False)
