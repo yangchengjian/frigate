@@ -22,6 +22,8 @@ from frigate.const import RECORD_DIR, CLIPS_DIR, CACHE_DIR
 from frigate.edgetpu import load_labels
 from frigate.util import SharedMemoryFrameManager, draw_box_with_label, calculate_region
 
+from frigate.feature_detector import detect_age_and_gender
+
 logger = logging.getLogger(__name__)
 
 PATH_TO_LABELS = '/labelmap.txt'
@@ -424,6 +426,7 @@ class TrackedObjectProcessor(threading.Thread):
 
         def start(camera, obj: TrackedObject, current_frame_time):
             logger.info(f"TrackedObjectProcessor start camera: {camera}, current_frame_time: {current_frame_time}")
+            detect_age_and_gender(obj.frame_cache[current_frame_time], obj.thumbnail_data['region'])
             self.event_queue.put(('start', camera, obj.to_dict()))
 
         def update(camera, obj: TrackedObject, current_frame_time):
