@@ -28,26 +28,44 @@ input_shape_gender = input_details_gender[0]['shape']
 
 face_cascade = cv2.CascadeClassifier("/haarcascade_frontalface_default.xml")
 
-images = []
-
+from frigate.util import yuv_region_2_rgb
 
 def detect_age_and_gender(frame, region):
-    # logger.info(
-    #     f"detect_age_and_gender frame: {frame}")
     logger.info(
         f"detect_age_and_gender region: {region}")
+    
+    ## 用yuv_region_2_rgb转是为了防止region超过frame范围
+    rgb_region = yuv_region_2_rgb(frame, region)
+    print(f"rgb_region.shape: {rgb_region.shape}")
+   
+    bgr_region = cv2.cvtColor(rgb_region, cv2.COLOR_RGB2BGR)
+    print(f"bgr_region.shape: {bgr_region.shape}")
+    #frame_region = frame[region[1]: region[3], region[0]: region[2]]
+    #print(f"frame_region.shape: {frame_region.shape}")
 
+    #rgb_region = cv2.cvtColor(frame_region, cv2.COLOR_BGR2RGB)
+    #print(f"rgb_region.shape: {rgb_region.shape}")
+
+    gray_frame = cv2.cvtColor(rgb_region, cv2.COLOR_BGR2GRAY)
     faces = face_cascade.detectMultiScale(
-        frame, scaleFactor=1.2, minNeighbors=5)
+            gray_frame, scaleFactor=1.2, minNeighbors=3)
+    print(f"faces: {faces}")
     for x, y, w, h in faces:
 
-        tensor_input_raw = create_tensor_input(
-        frame, (224, 224), (x, y, x + w, y + h))
-        # logger.info(
-        #     f"detect_age_and_gender tensor_input_raw: {tensor_input_raw}")
+        frame_face = bgr_region[y:y+h, x:x+w]
+        print(f"frame_face.shape: {frame_face.shape}")
 
+        #rgb_face = yuv_region_2_rgb(frame_face, (x, y, x + w, y + h))
+        #print(f"rgb_face.shape: {rgb_face.shape}")
+        rgb_face = cv2.cvtColor(frame_face, cv2.COLOR_BGR2RGB)
+        print(f"rgb_face.shape: {rgb_face.shape}")
+
+        
+        tensor_input_raw = cv2.resize(rgb_face, (224,224))
+        print(f"tensor_input_raw.shape: {tensor_input_raw.shape}")
         tensor_input_raw = tensor_input_raw.astype('float')
         tensor_input_raw = tensor_input_raw / 255
+        tensor_input_raw = np.expand_dims(tensor_input_raw, axis = 0)
         tensor_input = np.array(tensor_input_raw, dtype=np.float32)
 
         # Predict
@@ -78,4 +96,4 @@ def detect_age_and_gender(frame, region):
 
         logger.info(f"prezic_age: {prezic_age}, prezic_gender: {prezic_gender}")
 
-    return prezic_age, prezic_gender, frame
+        # return prezic_age, prezic_gender, frame
