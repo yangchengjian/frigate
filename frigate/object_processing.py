@@ -330,7 +330,7 @@ class CameraState():
 
             # call event handlers
             for c in self.callbacks['start']:
-                c(self.name, new_obj, frame_time)
+                c(self.name, new_obj, frame_time, current_frame, current_detections[id])
         
         for id in updated_ids:
             updated_obj = self.tracked_objects[id]
@@ -424,13 +424,18 @@ class TrackedObjectProcessor(threading.Thread):
         self.camera_states: Dict[str, CameraState] = {}
         self.frame_manager = SharedMemoryFrameManager()
 
-        def start(camera, obj: TrackedObject, current_frame_time):
-            logger.info(f"TrackedObjectProcessor start camera: {camera}, current_frame_time: {current_frame_time}")
+        def start(camera, obj: TrackedObject, current_frame_time, current_frame, obj_data):
+            logger.info(f"TrackedObjectProcessor start camera: {camera}, label: {obj_data['label']}")
+            if obj_data['label'] == 'person':
+                pre_results = detect_age_and_gender(current_frame, obj_data['region'])
+                for result in pre_results:
+                    logger.info(f"TrackedObjectProcessor start age: {result['age']}, gender: {result['gender']}, face: {result['face']}")
+                    self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(result), retain=True)
+
             self.event_queue.put(('start', camera, obj.to_dict()))
 
         def update(camera, obj: TrackedObject, current_frame_time):
             logger.info(f"TrackedObjectProcessor update camera: {camera}, current_frame_time: {current_frame_time}")
-            detect_age_and_gender(obj.frame_cache[current_frame_time], obj.thumbnail_data['region'])
             after = obj.to_dict()
             message = { 'before': obj.previous, 'after': after }
             self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(message), retain=False)

@@ -1,3 +1,4 @@
+import base64
 import cv2
 import logging
 import numpy as np
@@ -34,6 +35,8 @@ def detect_age_and_gender(frame, region):
     logger.info(
         f"detect_age_and_gender region: {region}")
     
+    prezic_result = []
+    
     ## 从frame上取下一块region，并转为rgb格式
     ## (用yuv_region_2_rgb转是为了防止region超过frame范围)
     region_rgb = yuv_region_2_rgb(frame, region)
@@ -55,9 +58,7 @@ def detect_age_and_gender(frame, region):
     print(f"faces: {faces}")
     for x, y, w, h in faces:
 
-        region_face_bgr = region_bgr[y:y+h, x:x+w]
-        print(f"region_face_bgr.shape: {region_face_bgr.shape}")
-        region_face_rgb = cv2.cvtColor(region_face_bgr, cv2.COLOR_BGR2RGB)
+        region_face_rgb = region_rgb[y:y+h, x:x+w]
         print(f"region_face_rgb.shape: {region_face_rgb.shape}")
 
         ## 为适应tensorflow输入做转换
@@ -91,9 +92,13 @@ def detect_age_and_gender(frame, region):
 
         index_pred_age = int(np.argmax(output_data_age))
         index_pred_gender = int(np.argmax(output_data_gender))
-        prezic_age = string_pred_age[index_pred_age]
-        prezic_gender = string_pred_gen[index_pred_gender]
+        logger.info(f"age: {string_pred_age[index_pred_age]}, gender: {string_pred_gen[index_pred_gender]}")
+        base64_region_face =  base64.b64encode(cv2.imencode('.jpg', region_face_rgb)[1]).decode('utf-8')
+        
+        prezic_result.append({
+            'age': string_pred_age[index_pred_age], 
+            'gender': string_pred_gen[index_pred_gender], 
+            'face': base64_region_face
+            })
 
-        logger.info(f"prezic_age: {prezic_age}, prezic_gender: {prezic_gender}")
-
-        # return prezic_age, prezic_gender, frame
+    return prezic_result
