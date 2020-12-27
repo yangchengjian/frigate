@@ -34,34 +34,34 @@ def detect_age_and_gender(frame, region):
     logger.info(
         f"detect_age_and_gender region: {region}")
     
-    ## 用yuv_region_2_rgb转是为了防止region超过frame范围
-    rgb_region = yuv_region_2_rgb(frame, region)
-    print(f"rgb_region.shape: {rgb_region.shape}")
-   
-    bgr_region = cv2.cvtColor(rgb_region, cv2.COLOR_RGB2BGR)
-    print(f"bgr_region.shape: {bgr_region.shape}")
-    #frame_region = frame[region[1]: region[3], region[0]: region[2]]
-    #print(f"frame_region.shape: {frame_region.shape}")
+    ## 从frame上取下一块region，并转为rgb格式
+    ## (用yuv_region_2_rgb转是为了防止region超过frame范围)
+    region_rgb = yuv_region_2_rgb(frame, region)
+    print(f"region_rgb.shape: {region_rgb.shape}")
+    ## 将region_rgb转成region_bgr（貌似不需要转也许）
+    region_bgr = cv2.cvtColor(region_rgb, cv2.COLOR_RGB2BGR)
+    print(f"region_bgr.shape: {region_bgr.shape}")
 
-    #rgb_region = cv2.cvtColor(frame_region, cv2.COLOR_BGR2RGB)
-    #print(f"rgb_region.shape: {rgb_region.shape}")
+    ## 取下区域
+    # frame_region = frame[region[1]: region[3], region[0]: region[2]]
+    # print(f"frame_region.shape: {frame_region.shape}")
+    ## 取下区域后再转
+    # region_rgb = cv2.cvtColor(frame_region, cv2.COLOR_BGR2RGB)
+    # print(f"region_rgb.shape: {region_rgb.shape}")
 
-    gray_frame = cv2.cvtColor(rgb_region, cv2.COLOR_BGR2GRAY)
+    region_gray = cv2.cvtColor(region_rgb, cv2.COLOR_BGR2GRAY)
     faces = face_cascade.detectMultiScale(
-            gray_frame, scaleFactor=1.2, minNeighbors=3)
+            region_gray, scaleFactor=1.2, minNeighbors=3)
     print(f"faces: {faces}")
     for x, y, w, h in faces:
 
-        frame_face = bgr_region[y:y+h, x:x+w]
-        print(f"frame_face.shape: {frame_face.shape}")
+        region_face_bgr = region_bgr[y:y+h, x:x+w]
+        print(f"region_face_bgr.shape: {region_face_bgr.shape}")
+        region_face_rgb = cv2.cvtColor(region_face_bgr, cv2.COLOR_BGR2RGB)
+        print(f"region_face_rgb.shape: {region_face_rgb.shape}")
 
-        #rgb_face = yuv_region_2_rgb(frame_face, (x, y, x + w, y + h))
-        #print(f"rgb_face.shape: {rgb_face.shape}")
-        rgb_face = cv2.cvtColor(frame_face, cv2.COLOR_BGR2RGB)
-        print(f"rgb_face.shape: {rgb_face.shape}")
-
-        
-        tensor_input_raw = cv2.resize(rgb_face, (224,224))
+        ## 为适应tensorflow输入做转换
+        tensor_input_raw = cv2.resize(region_face_rgb, (224,224))
         print(f"tensor_input_raw.shape: {tensor_input_raw.shape}")
         tensor_input_raw = tensor_input_raw.astype('float')
         tensor_input_raw = tensor_input_raw / 255
