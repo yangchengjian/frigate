@@ -7,13 +7,6 @@ from frigate.http import send_to_server
 
 logger = logging.getLogger(__name__)
 
-def callback_from_recognize(ch, method, properties, body):
-    print(f"AMQP callback method: {method}, properties: {properties}")
-    body_json = json.loads(body.decode())
-    print(f"AMQP recognize_result : {body_json['recognize_result']}")
-    ## POST recognize_result to server
-    send_to_server(body)
-
 def create_amqp_client():
     # connection = pika.BlockingConnection(
     #    pika.ConnectionParameters(host='RabbitmqModule'))
@@ -27,8 +20,14 @@ def create_amqp_client():
     # def callback(ch, method, properties, body):
     #     print(f"body : {body.decode()}")
     #     # send_message(connection, body)
+    def callback_from_recognize(ch, method, properties, body):
+        print(f"AMQP callback_from_recognize method: {method}, properties: {properties}")
+        body_json = json.loads(body.decode())
+        print(f"AMQP callback_from_recognize recognize_result : {body_json['recognize_result']}")
+        ## POST recognize_result to server
+        send_to_server(body)
 
-    print(' [*] Waiting for messages.')
+    print('AMQP [*] Waiting for messages.')
     channel.basic_consume(queue='from_recognize_frame',
                           on_message_callback=callback_from_recognize, auto_ack=True)
     # channel.start_consuming()
@@ -36,6 +35,7 @@ def create_amqp_client():
 
 
 def send_frame_to_recognize(connection, message):
+    print(f"AMQP send_frame_to_recognize from_frigate_frame")
     send_message(connection, '', 'from_frigate_frame', 'from_frigate_frame', message)
 
 def send_message(connection, exchange, routing_key, queue, message):
