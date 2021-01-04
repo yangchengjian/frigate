@@ -37,18 +37,18 @@ def detect_age_and_gender(frame, region):
     
     prezic_result = []
     
-    ## 从frame上取下一块region，并转为rgb格式
-    ## (用yuv_region_2_rgb转是为了防止region超过frame范围)
+    ## take a region from frame，and transfor to rgb
+    ## (use yuv_region_2_rgb avoid region to beyond frame scope)
     region_rgb = yuv_region_2_rgb(frame, region)
     print(f"region_rgb.shape: {region_rgb.shape}")
-    ## 将region_rgb转成region_bgr（貌似不需要转也许）
+    ## transform region_rgb to region_bgr（realy need?）
     region_bgr = cv2.cvtColor(region_rgb, cv2.COLOR_RGB2BGR)
     print(f"region_bgr.shape: {region_bgr.shape}")
 
-    ## 取下区域
+    ## take region
     # frame_region = frame[region[1]: region[3], region[0]: region[2]]
     # print(f"frame_region.shape: {frame_region.shape}")
-    ## 取下区域后再转
+    ## transfrom to rgb
     # region_rgb = cv2.cvtColor(frame_region, cv2.COLOR_BGR2RGB)
     # print(f"region_rgb.shape: {region_rgb.shape}")
 
@@ -61,7 +61,7 @@ def detect_age_and_gender(frame, region):
         region_face_rgb = region_rgb[y:y+h, x:x+w]
         print(f"region_face_rgb.shape: {region_face_rgb.shape}")
 
-        ## 为适应tensorflow输入做转换
+        ## adapting tensorflow input format
         tensor_input_raw = cv2.resize(region_face_rgb, (224,224))
         print(f"tensor_input_raw.shape: {tensor_input_raw.shape}")
         tensor_input_raw = tensor_input_raw.astype('float')

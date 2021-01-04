@@ -137,7 +137,7 @@ class FrigateApp():
                 self.detectors[name] = EdgeTPUProcess(name, self.detection_queue, self.detection_out_events, model_shape, detector.device, detector.num_threads)
 
     def start_detected_frames_processor(self):
-        self.detected_frames_processor = TrackedObjectProcessor(self.config, self.mqtt_client, self.config.mqtt.topic_prefix, 
+        self.detected_frames_processor = TrackedObjectProcessor(self.config, self.config.mqtt, self.mqtt_client, 
             self.detected_frames_queue, self.event_queue, self.event_processed_queue, self.stop_event)
         self.detected_frames_processor.start()
 
