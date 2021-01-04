@@ -180,16 +180,16 @@ class CameraWatchdog(threading.Thread):
 
             if not self.capture_thread.is_alive():
                 self.start_ffmpeg_detect()
-            elif now - self.capture_thread.current_frame.value > 20:
-                self.logger.info(f"No frames received from {self.camera_name} in 20 seconds. Exiting ffmpeg...")
-                self.ffmpeg_detect_process.terminate()
-                try:
-                    self.logger.info("Waiting for ffmpeg to exit gracefully...")
-                    self.ffmpeg_detect_process.communicate(timeout=30)
-                except sp.TimeoutExpired:
-                    self.logger.info("FFmpeg didnt exit. Force killing...")
-                    self.ffmpeg_detect_process.kill()
-                    self.ffmpeg_detect_process.communicate()
+            # elif now - self.capture_thread.current_frame.value > 20:
+            #     self.logger.info(f"No frames received from {self.camera_name} in 20 seconds. Exiting ffmpeg...")
+            #     self.ffmpeg_detect_process.terminate()
+            #     try:
+            #         self.logger.info("Waiting for ffmpeg to exit gracefully...")
+            #         self.ffmpeg_detect_process.communicate(timeout=30)
+            #     except sp.TimeoutExpired:
+            #         self.logger.info("FFmpeg didnt exit. Force killing...")
+            #         self.ffmpeg_detect_process.kill()
+            #         self.ffmpeg_detect_process.communicate()
             
             for p in self.ffmpeg_other_processes:
                 poll = p['process'].poll()

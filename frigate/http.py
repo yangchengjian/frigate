@@ -2,6 +2,7 @@ import base64
 import datetime
 import logging
 import os
+import requests
 import time
 from functools import reduce
 
@@ -267,3 +268,14 @@ def imagestream(detected_frames_processor, camera_name, fps, height, draw_option
         ret, jpg = cv2.imencode('.jpg', frame)
         yield (b'--frame\r\n'
             b'Content-Type: image/jpeg\r\n\r\n' + jpg.tobytes() + b'\r\n\r\n')
+
+
+def send_to_server(datas):
+    headers = {'Content-Type': 'application/json'}
+    send('ec2-52-81-60-128.cn-north-1.compute.amazonaws.com.cn', 'SBmMA2YzmY0wfuVJyvCz', headers, datas)
+    
+def send(host, token, headers, datas):
+    r = requests.post("http://" + host + ":8081/api/v1/" + token + "/telemetry", data=datas, headers=headers)
+    logger.info(f"TrackedObjectProcessor send_to_server response: {r}")
+    logger.info(f"TrackedObjectProcessor send_to_server response.text: {r.text}")
+    logger.info(f"TrackedObjectProcessor send_to_server response.status_code: {r.status_code}")

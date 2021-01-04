@@ -1,11 +1,23 @@
 #!/usr/bin/env python
+import json
+import logging
 import pika
 
+from frigate.http import send_to_server
 
-def create_amqp_client(callback):
+logger = logging.getLogger(__name__)
+
+def callback_from_recognize(ch, method, properties, body):
+    print(f"AMQP callback method: {method}, properties: {properties}")
+    body_json = json.loads(body.decode())
+    print(f"AMQP recognize_result : {body_json['recognize_result']}")
+    ## POST recognize_result to server
+    send_to_server(body)
+
+def create_amqp_client():
     # connection = pika.BlockingConnection(
     #    pika.ConnectionParameters(host='RabbitmqModule'))
-    params = pika.ConnectionParameters(host='RabbitmqModule', heartbeat=60,
+    params = pika.ConnectionParameters(host='RabbitmqModule', heartbeat=600,
                                        blocked_connection_timeout=300)
     connection = pika.BlockingConnection(params)
 
@@ -18,23 +30,25 @@ def create_amqp_client(callback):
 
     print(' [*] Waiting for messages.')
     channel.basic_consume(queue='from_recognize_frame',
-                          on_message_callback=callback, auto_ack=True)
+                          on_message_callback=callback_from_recognize, auto_ack=True)
     # channel.start_consuming()
     return connection
 
 
-def send_message(connection, message):
+def send_frame_to_recognize(connection, message):
+    send_message(connection, '', 'from_frigate_frame', 'from_frigate_frame', message)
+
+def send_message(connection, exchange, routing_key, queue, message):
     channel = connection.channel()
-    channel.queue_declare(queue='from_frigate_frame')
+    channel.queue_declare(queue=queue)
     channel.basic_publish(
-        exchange='',
-        routing_key='from_frigate_frame',
+        exchange=exchange,
+        routing_key=routing_key,
         body=message,
         properties=pika.BasicProperties(
             delivery_mode=2,  # make message persistent
         )
     )
-
 
 def process_message(connection):
     connection.process_data_events(time_limit=0)

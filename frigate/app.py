@@ -10,6 +10,7 @@ import signal
 import yaml
 from playhouse.sqlite_ext import SqliteExtDatabase
 
+from frigate.amqp import create_amqp_client
 from frigate.config import FrigateConfig
 from frigate.const import RECORD_DIR, CLIPS_DIR, CACHE_DIR
 from frigate.edgetpu import EdgeTPUProcess
@@ -118,6 +119,9 @@ class FrigateApp():
     def init_web_server(self):
         self.flask_app = create_app(self.config, self.db, self.camera_metrics, self.detectors, self.detected_frames_processor)
 
+    def init_amqp(self):
+        self.amqp_connection = create_amqp_client()
+
     def init_mqtt(self):
         self.mqtt_client = create_mqtt_client(self.config.mqtt)
 
@@ -137,7 +141,7 @@ class FrigateApp():
                 self.detectors[name] = EdgeTPUProcess(name, self.detection_queue, self.detection_out_events, model_shape, detector.device, detector.num_threads)
 
     def start_detected_frames_processor(self):
-        self.detected_frames_processor = TrackedObjectProcessor(self.config, self.config.mqtt, self.mqtt_client, 
+        self.detected_frames_processor = TrackedObjectProcessor(self.config, self.config.mqtt, self.amqp_connection, self.mqtt_client, 
             self.detected_frames_queue, self.event_queue, self.event_processed_queue, self.stop_event)
         self.detected_frames_processor.start()
 
@@ -191,6 +195,7 @@ class FrigateApp():
             self.set_log_levels()
             self.init_queues()
             self.init_database()
+            self.init_amqp()
             self.init_mqtt()
         except Exception as e:
             print(e)

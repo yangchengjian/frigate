@@ -3,7 +3,7 @@ import cv2
 import logging
 import numpy as np
 import tflite_runtime.interpreter as tflite
-
+from frigate.util import yuv_region_2_rgb
 from frigate.video import create_tensor_input
 
 logger = logging.getLogger(__name__)
@@ -28,8 +28,6 @@ output_details_gender = interpreter_gender.get_output_details()
 input_shape_gender = input_details_gender[0]['shape']
 
 face_cascade = cv2.CascadeClassifier("/haarcascade_frontalface_default.xml")
-
-from frigate.util import yuv_region_2_rgb
 
 def detect_age_and_gender(frame, region):
     logger.info(
@@ -92,7 +90,7 @@ def detect_age_and_gender(frame, region):
 
         index_pred_age = int(np.argmax(output_data_age))
         index_pred_gender = int(np.argmax(output_data_gender))
-        logger.info(f"age: {string_pred_age[index_pred_age]}, gender: {string_pred_gen[index_pred_gender]}")
+        print(f"age: {string_pred_age[index_pred_age]}, gender: {string_pred_gen[index_pred_gender]}")
         base64_region_face =  base64.b64encode(cv2.imencode('.jpg', region_face_rgb)[1]).decode('utf-8')
         
         prezic_result.append({

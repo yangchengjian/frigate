@@ -7,7 +7,7 @@ import json
 import logging
 import os
 import queue
-import requests
+
 import threading
 import time
 from collections import Counter, defaultdict
@@ -18,13 +18,15 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
+from frigate.amqp import send_frame_to_recognize, process_message
 from frigate.config import FrigateConfig, CameraConfig, MqttConfig
 from frigate.const import RECORD_DIR, CLIPS_DIR, CACHE_DIR
+from frigate.detector import detect_age_and_gender
 from frigate.edgetpu import load_labels
+from frigate.http import send_to_server
 from frigate.util import SharedMemoryFrameManager, draw_box_with_label, calculate_region
 
-from frigate.detector import detect_age_and_gender
-from frigate.amqp import create_amqp_client, send_message, process_message
+
 
 logger = logging.getLogger(__name__)
 
@@ -413,11 +415,12 @@ class CameraState():
             self.previous_frame_id = frame_id
 
 class TrackedObjectProcessor(threading.Thread):
-    def __init__(self, config: FrigateConfig, mqtt_config: MqttConfig, client, tracked_objects_queue, event_queue, event_processed_queue, stop_event):
+    def __init__(self, config: FrigateConfig, mqtt_config: MqttConfig, amqp_connection, mqtt_client, tracked_objects_queue, event_queue, event_processed_queue, stop_event):
         threading.Thread.__init__(self)
         self.name = "detected_frames_processor"
         self.config = config
-        self.client = client
+        self.amqp_connection = amqp_connection
+        self.client = mqtt_client
         self.host = mqtt_config.host
         self.token = mqtt_config.user
         self.topic_prefix = mqtt_config.topic_prefix
@@ -428,24 +431,6 @@ class TrackedObjectProcessor(threading.Thread):
         self.camera_states: Dict[str, CameraState] = {}
         self.frame_manager = SharedMemoryFrameManager()
 
-        def callback(ch, method, properties, body):
-            print(f"callback method: {method}, properties: {properties}")
-            body_json = json.loads(body.decode())
-            print(f"recognize_result : {body_json['recognize_result']}")
-            ## POST to server
-            headers = {'Content-Type': 'application/json'}
-            send_to_server(headers, body)
-
-            # self.client.publish(f"{self.topic_prefix}/telemetry", body, retain=False)
-
-        def send_to_server(headers, datas):
-            r = requests.post("http://" + self.host + ":8081/api/v1/" + self.token + "/telemetry", data=datas, headers=headers)
-            logger.info(f"TrackedObjectProcessor send_to_server response: {r}")
-            logger.info(f"TrackedObjectProcessor send_to_server response.text: {r.text}")
-            logger.info(f"TrackedObjectProcessor send_to_server response.status_code: {r.status_code}")
-
-        self.amqp_connection = create_amqp_client(callback)
-
         def start(camera, obj: TrackedObject, current_frame_time, current_frame, obj_data):
             logger.info(f"TrackedObjectProcessor start camera: {camera}, label: {obj_data['label']}, score: {obj_data['score']}")
             # if obj_data['label'] == 'person' and obj_data['score'] > 0.75:
@@ -454,10 +439,8 @@ class TrackedObjectProcessor(threading.Thread):
                 current_frame_bgr = cv2.cvtColor(current_frame, cv2.COLOR_BGR2RGB)
                 current_frame_bgr_buffer = cv2.imencode('.jpg', current_frame_bgr)[1]
                 current_frame_bgr_base64 = base64.b64encode(current_frame_bgr_buffer).decode()
-                headers = {'Content-Type': 'application/json'}
                 datas = json.dumps({"current_frame_bgr_base64": current_frame_bgr_base64})
-
-                send_to_server(headers, datas)
+                send_to_server(datas)
 
                 
                 ## transform to base64
@@ -466,13 +449,14 @@ class TrackedObjectProcessor(threading.Thread):
                 ## send to AMQP
                 timestamp = datetime.datetime.now().timestamp() * 1000
                 datas = json.dumps({"timestamp": timestamp, "data": frame_base64})
-                send_message(self.amqp_connection, datas)
+                send_frame_to_recognize(self.amqp_connection, datas)
 
                 ## age and gender
                 pre_results = detect_age_and_gender(current_frame, obj_data['region'])
                 for result in pre_results:
                     logger.info(f"TrackedObjectProcessor start age: {result['age']}, gender: {result['gender']}")
-                    self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(result), retain=True)
+                    # self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(result), retain=True)
+                    send_to_server(json.dumps(result))
 
             self.event_queue.put(('start', camera, obj.to_dict()))
 
