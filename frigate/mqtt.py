@@ -1,13 +1,15 @@
+import json
 import logging
 import threading
 
 import paho.mqtt.client as mqtt
 
+from frigate.amqp import send_message
 from frigate.config import MqttConfig
 
 logger = logging.getLogger(__name__)
 
-def create_mqtt_client(config: MqttConfig):
+def create_mqtt_client(config: MqttConfig, amqp_connection):
     print("create_mqtt_client")
     client = mqtt.Client(client_id=config.client_id)
 
@@ -28,18 +30,19 @@ def create_mqtt_client(config: MqttConfig):
         client.subscribe(config.topic_prefix+'/rpc/request/+')
         ## PUBLISH
         # client.publish(config.topic_prefix+'/available', 'online', retain=True)  
-        client.publish(config.topic_prefix+'/attributes', '{\'status\': \'online\'}', retain=True) 
+        client.publish(config.topic_prefix+'/telemetry', '{\'status\': \'online\'}', retain=True) 
 
     def on_message(client, userdata, message):
-        print("MQTT callback_from_mqtt_server")
-        payload = message.payload.decode()
+        payload = json.loads(message.payload.decode())
         print(f"MQTT callback_from_mqtt_server: {message.topic}, {payload}")
+        if payload['method'] == 'syncCommand':
+            send_message(amqp_connection, '', 'from_frigate_sync', 'from_frigate_sync', payload['params'])
 
     client.on_connect = on_connect
     client.on_message = on_message
 
     # client.will_set(config.topic_prefix+'/available', payload='offline', qos=1, retain=True)
-    client.will_set(config.topic_prefix+'/attributes', payload='{\'status\': \'offline\'}', qos=1, retain=True)
+    client.will_set(config.topic_prefix+'/telemetry', payload='{\'status\': \'offline\'}', qos=1, retain=True)
 
     if not config.user is None:
         client.username_pw_set(config.user, password=config.password)

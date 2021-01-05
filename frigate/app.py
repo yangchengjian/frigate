@@ -123,7 +123,7 @@ class FrigateApp():
         self.amqp_connection = create_amqp_client()
 
     def init_mqtt(self):
-        self.mqtt_client = create_mqtt_client(self.config.mqtt)
+        self.mqtt_client = create_mqtt_client(self.config.mqtt, self.amqp_connection)
 
     def start_detectors(self):
         model_shape = (self.config.model.height, self.config.model.width)
