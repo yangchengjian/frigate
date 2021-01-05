@@ -347,7 +347,7 @@ class CameraState():
 
                 # call event handlers
                 for c in self.callbacks['update']:
-                    c(self.name, updated_obj, frame_time)
+                    c(self.name, updated_obj, frame_time, current_frame, current_detections[id])
         
         for id in removed_ids:
             # publish events to mqtt
@@ -355,7 +355,7 @@ class CameraState():
             if not 'end_time' in removed_obj.obj_data:
                 removed_obj.obj_data['end_time'] = frame_time
                 for c in self.callbacks['end']:
-                    c(self.name, removed_obj, frame_time)
+                    c(self.name, removed_obj, frame_time, current_frame)
 
         # TODO: can i switch to looking this up and only changing when an event ends?
         # maintain best objects
@@ -392,14 +392,14 @@ class CameraState():
                 for c in self.callbacks['object_status']:
                     c(self.name, obj_name, count)
 
-        # expire any objects that are >0 and no longer detected
-        expired_objects = [obj_name for obj_name, count in self.object_counts.items() if count > 0 and not obj_name in obj_counter]
-        for obj_name in expired_objects:
-            self.object_counts[obj_name] = 0
-            for c in self.callbacks['object_status']:
-                c(self.name, obj_name, 0)
-            for c in self.callbacks['snapshot']:
-                c(self.name, self.best_objects[obj_name], frame_time)
+        # # expire any objects that are >0 and no longer detected
+        # expired_objects = [obj_name for obj_name, count in self.object_counts.items() if count > 0 and not obj_name in obj_counter]
+        # for obj_name in expired_objects:
+        #     self.object_counts[obj_name] = 0
+        #     for c in self.callbacks['object_status']:
+        #         c(self.name, obj_name, 0)
+        #     for c in self.callbacks['snapshot']:
+        #         c(self.name, self.best_objects[obj_name], frame_time)
         
         # cleanup thumbnail frame cache
         current_thumb_frames = set([obj.thumbnail_data['frame_time'] for obj in self.tracked_objects.values() if not obj.false_positive])
@@ -432,10 +432,15 @@ class TrackedObjectProcessor(threading.Thread):
         self.frame_manager = SharedMemoryFrameManager()
 
         def start(camera, obj: TrackedObject, current_frame_time, current_frame, obj_data):
-            logger.info(f"TrackedObjectProcessor start camera: {camera}, label: {obj_data['label']}, score: {obj_data['score']}")
+            logger.info(f"TrackedObjectProcessor start    camera: {camera}, score: {obj_data['score']}")
             
-            # if obj_data['label'] == 'person' and obj_data['score'] > 0.75:
-            if obj_data['label'] == 'person':
+            self.event_queue.put(('start', camera, obj.to_dict()))
+
+        def update(camera, obj: TrackedObject, current_frame_time, current_frame, obj_data):
+            logger.info(f"TrackedObjectProcessor update   camera: {camera}, score: {obj_data['score']}")
+            
+            if obj_data['label'] == 'person' and obj_data['score'] > 0.8:
+            # if obj_data['label'] == 'person':
                 ## SEND to recognize through AMQP
                 frame_buffer = cv2.imencode('.jpg', current_frame)[1]
                 frame_base64 = base64.b64encode(frame_buffer).decode()
@@ -453,39 +458,29 @@ class TrackedObjectProcessor(threading.Thread):
                 ## DETECT age and gender
                 pre_results = detect_age_and_gender(current_frame, timestamp, obj_data['region'])
                 for result in pre_results:
-                    logger.info(f"TrackedObjectProcessor start age: {result['age']}, gender: {result['gender']}")
-                    # self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(result), retain=True)
+                    logger.info(f"TrackedObjectProcessor start    age: {result['age']}, gender: {result['gender']}")
                     send_to_server(self.token, json.dumps(result))
 
-            self.event_queue.put(('start', camera, obj.to_dict()))
 
-        def update(camera, obj: TrackedObject, current_frame_time):
-            logger.info(f"TrackedObjectProcessor update camera: {camera}, current_frame_time: {current_frame_time}")
-            
             after = obj.to_dict()
-            message = { 'before': obj.previous, 'after': after }
-            self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(message), retain=False)
             obj.previous = after
 
-        def end(camera, obj: TrackedObject, current_frame_time):
-            logger.info(f"TrackedObjectProcessor end camera: {camera}, current_frame_time: {current_frame_time}")
+        def end(camera, obj: TrackedObject, current_frame_time, current_frame):
+            logger.info(f"TrackedObjectProcessor end      camera: {camera}")
             
-            if not obj.false_positive:
-                message = { 'before': obj.previous, 'after': obj.to_dict() }
-                self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(message), retain=False)
             self.event_queue.put(('end', camera, obj.to_dict(include_thumbnail=True)))
         
         def snapshot(camera, obj: TrackedObject, current_frame_time):
+            logger.info(f"TrackedObjectProcessor snapshot camera: {camera}")
 
-            logger.info(f"TrackedObjectProcessor snapshot camera: {camera}, current_frame_time: {current_frame_time}")
-            message = { 'snapshot': base64.b64encode(obj.get_jpg_bytes()).decode('utf-8') }
-            self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(message), retain=True)
+            # message = { 'snapshot': base64.b64encode(obj.get_jpg_bytes()).decode('utf-8') }
+            # self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(message), retain=True)
         
         def object_status(camera, object_name, status):
+            logger.info(f"TrackedObjectProcessor status   camera: {camera}, name: {object_name}, status: {status}")
 
-            logger.info(f"TrackedObjectProcessor object_status camera: {camera}, object_name: {object_name}, status: {status}")
-            message = { 'object_name': object_name, 'status': status }
-            self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(message), retain=False)
+            # message = { 'object_name': object_name, 'status': status }
+            # self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(message), retain=False)
 
         for camera in self.config.cameras.keys():
             camera_state = CameraState(camera, self.config, self.frame_manager)
