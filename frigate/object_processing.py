@@ -433,39 +433,35 @@ class TrackedObjectProcessor(threading.Thread):
 
         def start(camera, obj: TrackedObject, current_frame_time, current_frame, obj_data):
             logger.info(f"TrackedObjectProcessor start camera: {camera}, label: {obj_data['label']}, score: {obj_data['score']}")
-
-            process_message(self.amqp_connection)
             
             # if obj_data['label'] == 'person' and obj_data['score'] > 0.75:
             if obj_data['label'] == 'person':
-                ## transform to base64 and send to AMQP
+                ## SEND to recognize through AMQP
                 frame_buffer = cv2.imencode('.jpg', current_frame)[1]
                 frame_base64 = base64.b64encode(frame_buffer).decode()
                 timestamp = datetime.datetime.now().timestamp() * 1000
-                datas = json.dumps({"timestamp": timestamp, "data": frame_base64})
+                datas = json.dumps({"access_token": self.token, "timestamp": timestamp, "frame": frame_base64})
                 send_frame_to_recognize(self.amqp_connection, datas)
 
-                ## POST to server
+                ## POST to server through HTTP
                 current_frame_bgr = cv2.cvtColor(current_frame, cv2.COLOR_BGR2RGB)
                 current_frame_bgr_buffer = cv2.imencode('.jpg', current_frame_bgr)[1]
                 current_frame_bgr_base64 = base64.b64encode(current_frame_bgr_buffer).decode()
                 datas = json.dumps({"current_frame_bgr_base64": current_frame_bgr_base64})
-                send_to_server(datas)
+                send_to_server(self.token, datas)
 
-                ## age and gender
+                ## DETECT age and gender
                 pre_results = detect_age_and_gender(current_frame, obj_data['region'])
                 for result in pre_results:
                     logger.info(f"TrackedObjectProcessor start age: {result['age']}, gender: {result['gender']}")
                     # self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(result), retain=True)
-                    send_to_server(json.dumps(result))
+                    send_to_server(self.token, json.dumps(result))
 
             self.event_queue.put(('start', camera, obj.to_dict()))
 
         def update(camera, obj: TrackedObject, current_frame_time):
             logger.info(f"TrackedObjectProcessor update camera: {camera}, current_frame_time: {current_frame_time}")
             
-            process_message(self.amqp_connection)
-
             after = obj.to_dict()
             message = { 'before': obj.previous, 'after': after }
             self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(message), retain=False)
@@ -474,8 +470,6 @@ class TrackedObjectProcessor(threading.Thread):
         def end(camera, obj: TrackedObject, current_frame_time):
             logger.info(f"TrackedObjectProcessor end camera: {camera}, current_frame_time: {current_frame_time}")
             
-            process_message(self.amqp_connection)
-
             if not obj.false_positive:
                 message = { 'before': obj.previous, 'after': obj.to_dict() }
                 self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(message), retain=False)
@@ -483,15 +477,11 @@ class TrackedObjectProcessor(threading.Thread):
         
         def snapshot(camera, obj: TrackedObject, current_frame_time):
 
-            process_message(self.amqp_connection)
-
             logger.info(f"TrackedObjectProcessor snapshot camera: {camera}, current_frame_time: {current_frame_time}")
             message = { 'snapshot': base64.b64encode(obj.get_jpg_bytes()).decode('utf-8') }
             self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(message), retain=True)
         
         def object_status(camera, object_name, status):
-
-            process_message(self.amqp_connection)
 
             logger.info(f"TrackedObjectProcessor object_status camera: {camera}, object_name: {object_name}, status: {status}")
             message = { 'object_name': object_name, 'status': status }

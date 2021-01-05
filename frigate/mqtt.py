@@ -34,7 +34,7 @@ def create_mqtt_client(config: MqttConfig, amqp_connection):
 
     def on_message(client, userdata, message):
         payload = json.loads(message.payload.decode())
-        print(f"MQTT callback_from_mqtt_server: {message.topic}, {payload}")
+        print(f"MQTT on_message : {message.topic}, {payload}")
         if payload['method'] == 'syncCommand':
             send_message(amqp_connection, '', 'from_frigate_sync', 'from_frigate_sync', payload['params'])
 
