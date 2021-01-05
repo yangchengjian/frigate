@@ -451,7 +451,7 @@ class TrackedObjectProcessor(threading.Thread):
                 send_to_server(self.token, datas)
 
                 ## DETECT age and gender
-                pre_results = detect_age_and_gender(current_frame, obj_data['region'])
+                pre_results = detect_age_and_gender(current_frame, timestamp, obj_data['region'])
                 for result in pre_results:
                     logger.info(f"TrackedObjectProcessor start age: {result['age']}, gender: {result['gender']}")
                     # self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(result), retain=True)

@@ -29,7 +29,7 @@ input_shape_gender = input_details_gender[0]['shape']
 
 face_cascade = cv2.CascadeClassifier("/haarcascade_frontalface_default.xml")
 
-def detect_age_and_gender(frame, region):
+def detect_age_and_gender(frame, timestamp, region):
     logger.info(
         f"detect_age_and_gender region: {region}")
     
@@ -94,6 +94,7 @@ def detect_age_and_gender(frame, region):
         base64_region_face =  base64.b64encode(cv2.imencode('.jpg', region_face_rgb)[1]).decode('utf-8')
         
         prezic_result.append({
+            'timestamp_detect': timestamp,
             'age': string_pred_age[index_pred_age], 
             'gender': string_pred_gen[index_pred_gender], 
             'face': base64_region_face
