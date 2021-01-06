@@ -433,7 +433,7 @@ class TrackedObjectProcessor(threading.Thread):
 
         def start(camera, obj: TrackedObject, current_frame_time, current_frame, obj_data):
             logger.info(f"TrackedObjectProcessor start    camera: {camera}, score: {obj_data['score']}")
-            
+
             self.event_queue.put(('start', camera, obj.to_dict()))
 
         def update(camera, obj: TrackedObject, current_frame_time, current_frame, obj_data):
@@ -445,7 +445,7 @@ class TrackedObjectProcessor(threading.Thread):
                 frame_buffer = cv2.imencode('.jpg', current_frame)[1]
                 frame_base64 = base64.b64encode(frame_buffer).decode()
                 timestamp = datetime.datetime.now().timestamp() * 1000
-                datas = json.dumps({"access_token": self.token, "timestamp": timestamp, "frame": frame_base64})
+                datas = json.dumps({"access_token": self.token, "current_frame_time": timestamp, "current_frame": frame_base64})
                 send_frame_to_recognize(self.amqp_connection, datas)
 
                 ## POST to server through HTTP
@@ -458,7 +458,7 @@ class TrackedObjectProcessor(threading.Thread):
                 ## DETECT age and gender
                 pre_results = detect_age_and_gender(current_frame, timestamp, obj_data['region'])
                 for result in pre_results:
-                    logger.info(f"TrackedObjectProcessor start    age: {result['age']}, gender: {result['gender']}")
+                    logger.info(f"TrackedObjectProcessor start    detect_frame_age: {result['detect_frame_age']}, detect_frame_gender: {result['detect_frame_gender']}")
                     send_to_server(self.token, json.dumps(result))
 
 
@@ -467,8 +467,12 @@ class TrackedObjectProcessor(threading.Thread):
 
         def end(camera, obj: TrackedObject, current_frame_time, current_frame):
             logger.info(f"TrackedObjectProcessor end      camera: {camera}")
-            
+
             self.event_queue.put(('end', camera, obj.to_dict(include_thumbnail=True)))
+
+            after = obj.to_dict()
+            message = { 'before': obj.previous, 'after': after }
+            self.client.publish(f"{self.topic_prefix}/telemetry", json.dumps(message), retain=False)
         
         def snapshot(camera, obj: TrackedObject, current_frame_time):
             logger.info(f"TrackedObjectProcessor snapshot camera: {camera}")

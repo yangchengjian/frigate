@@ -38,10 +38,8 @@ def detect_age_and_gender(frame, timestamp, region):
     ## take a region from frame，and transfor to rgb
     ## (use yuv_region_2_rgb avoid region to beyond frame scope)
     region_rgb = yuv_region_2_rgb(frame, region)
-    print(f"region_rgb.shape: {region_rgb.shape}")
     ## transform region_rgb to region_bgr（realy need?）
     region_bgr = cv2.cvtColor(region_rgb, cv2.COLOR_RGB2BGR)
-    print(f"region_bgr.shape: {region_bgr.shape}")
 
     ## take region
     # frame_region = frame[region[1]: region[3], region[0]: region[2]]
@@ -57,11 +55,9 @@ def detect_age_and_gender(frame, timestamp, region):
     for x, y, w, h in faces:
 
         region_face_rgb = region_rgb[y:y+h, x:x+w]
-        print(f"region_face_rgb.shape: {region_face_rgb.shape}")
 
         ## adapting tensorflow input format
         tensor_input_raw = cv2.resize(region_face_rgb, (224,224))
-        print(f"tensor_input_raw.shape: {tensor_input_raw.shape}")
         tensor_input_raw = tensor_input_raw.astype('float')
         tensor_input_raw = tensor_input_raw / 255
         tensor_input_raw = np.expand_dims(tensor_input_raw, axis = 0)
@@ -94,10 +90,10 @@ def detect_age_and_gender(frame, timestamp, region):
         base64_region_face =  base64.b64encode(cv2.imencode('.jpg', region_face_rgb)[1]).decode('utf-8')
         
         prezic_result.append({
-            'timestamp_detect': timestamp,
-            'age': string_pred_age[index_pred_age], 
-            'gender': string_pred_gen[index_pred_gender], 
-            'face': base64_region_face
+            'detect_frame_time': timestamp,
+            'detect_frame_age': string_pred_age[index_pred_age], 
+            'detect_frame_gender': string_pred_gen[index_pred_gender], 
+            'detect_frame_face': base64_region_face
             })
 
     return prezic_result
