@@ -454,7 +454,7 @@ class TrackedObjectProcessor(threading.Thread):
                 current_frame_bgr = cv2.cvtColor(current_frame, cv2.COLOR_BGR2RGB)
                 current_frame_bgr_buffer = cv2.imencode('.jpg', current_frame_bgr)[1]
                 current_frame_bgr_base64 = base64.b64encode(current_frame_bgr_buffer).decode()
-                datas = json.dumps({"current_frame_bgr_base64": current_frame_bgr_base64})
+                datas = json.dumps({"current_frame_bgr_base64": 'data:image/jpeg;base64,' + current_frame_bgr_base64})
                 send_to_server(self.http_config.host, self.http_config.port, self.http_config.user, datas)
 
                 ## DETECT age and gender

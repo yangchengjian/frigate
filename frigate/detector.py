@@ -93,7 +93,7 @@ def detect_age_and_gender(frame, timestamp, region):
             'detect_frame_time': timestamp,
             'detect_frame_age': string_pred_age[index_pred_age], 
             'detect_frame_gender': string_pred_gen[index_pred_gender], 
-            'detect_frame_face': base64_region_face
+            'detect_frame_face': 'data:image/jpeg;base64,' + base64_region_face
             })
 
     return prezic_result
