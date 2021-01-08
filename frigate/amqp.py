@@ -33,10 +33,17 @@ def create_amqp_client():
     # channel.start_consuming()
     return connection
 
+def send_config_to_recognize(connection, message):
+    print(f"AMQP send_config_to_recognize from_frigate_config")
+    send_message(connection, '', 'from_frigate_config', 'from_frigate_config', message)
 
 def send_frame_to_recognize(connection, message):
     print(f"AMQP send_frame_to_recognize from_frigate_frame")
     send_message(connection, '', 'from_frigate_frame', 'from_frigate_frame', message)
+
+def send_sync_to_recognize(connection, message):
+    print(f"AMQP send_sync_to_recognize from_frigate_sync")
+    send_message(connection, '', 'from_frigate_sync', 'from_frigate_sync', message)
 
 def send_message(connection, exchange, routing_key, queue, message):
     channel = connection.channel()

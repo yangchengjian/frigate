@@ -123,7 +123,7 @@ class FrigateApp():
         self.amqp_connection = create_amqp_client()
 
     def init_mqtt(self):
-        self.mqtt_client = create_mqtt_client(self.config.mqtt, self.amqp_connection)
+        self.mqtt_client = create_mqtt_client(self.config.mqtt, self.config.http, self.amqp_connection)
 
     def start_detectors(self):
         model_shape = (self.config.model.height, self.config.model.width)
@@ -141,7 +141,7 @@ class FrigateApp():
                 self.detectors[name] = EdgeTPUProcess(name, self.detection_queue, self.detection_out_events, model_shape, detector.device, detector.num_threads)
 
     def start_detected_frames_processor(self):
-        self.detected_frames_processor = TrackedObjectProcessor(self.config, self.config.mqtt, self.amqp_connection, self.mqtt_client, 
+        self.detected_frames_processor = TrackedObjectProcessor(self.config, self.config.mqtt, self.config.http, self.amqp_connection, self.mqtt_client, 
             self.detected_frames_queue, self.event_queue, self.event_processed_queue, self.stop_event)
         self.detected_frames_processor.start()
 

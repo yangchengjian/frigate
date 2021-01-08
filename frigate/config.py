@@ -31,6 +31,16 @@ DEFAULT_DETECTORS = {
     }
 }
 
+HTTP_SCHEMA = vol.Schema(
+    {
+        vol.Required('host'): str,
+        vol.Optional('port', default=8080): int,
+        vol.Optional('topic_prefix', default='frigate'): str,
+        'user': str,
+        'password': str
+    }
+)
+
 MQTT_SCHEMA = vol.Schema(
     {
         vol.Required('host'): str,
@@ -215,6 +225,7 @@ FRIGATE_CONFIG_SCHEMA = vol.Schema(
             vol.Required('height'): int
         },
         vol.Optional('detectors', default=DEFAULT_DETECTORS): DETECTORS_SCHEMA,
+        'http': HTTP_SCHEMA,
         'mqtt': MQTT_SCHEMA,
         vol.Optional('logger', default={'default': 'info', 'logs': {}}): {
             vol.Optional('default', default='info'): vol.In(['info', 'debug', 'warning', 'error', 'critical']),
@@ -307,6 +318,41 @@ class LoggerConfig():
         return {
             'default': self.default,
             'logs': self.logs
+        }
+class HttpConfig():
+    def __init__(self, config):
+        self._host = config['host']
+        self._port = config['port']
+        self._topic_prefix = config['topic_prefix']
+        self._user = config.get('user')
+        self._password = config.get('password')
+    
+    @property
+    def host(self):
+        return self._host
+    
+    @property
+    def port(self):
+        return self._port
+    
+    @property
+    def topic_prefix(self):
+        return self._topic_prefix
+    
+    @property
+    def user(self):
+        return self._user
+    
+    @property
+    def password(self):
+        return self._password
+
+    def to_dict(self):
+        return {
+            'host': self.host,
+            'port': self.port,
+            'topic_prefix': self.topic_prefix,
+            'user': self.user
         }
 
 class MqttConfig():
@@ -900,6 +946,7 @@ class FrigateConfig():
         self._database = DatabaseConfig(config['database'])
         self._model = ModelConfig(config['model'])
         self._detectors = { name: DetectorConfig(d) for name, d in config['detectors'].items() }
+        self._http = HttpConfig(config['http'])
         self._mqtt = MqttConfig(config['mqtt'])
         self._save_clips = SaveClipsConfig(config['save_clips'])
         self._cameras = { name: CameraConfig(name, c, config) for name, c in config['cameras'].items() }
@@ -954,6 +1001,10 @@ class FrigateConfig():
     @property
     def logger(self):
         return self._logger
+
+    @property
+    def http(self):
+        return self._http
 
     @property
     def mqtt(self):

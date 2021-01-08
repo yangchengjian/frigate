@@ -270,12 +270,9 @@ def imagestream(detected_frames_processor, camera_name, fps, height, draw_option
             b'Content-Type: image/jpeg\r\n\r\n' + jpg.tobytes() + b'\r\n\r\n')
 
 
-HOST = 'ec2-52-81-60-128.cn-north-1.compute.amazonaws.com.cn'
-PORT = 8081
-
-def send_to_server(access_token, datas):
+def send_to_server(host, port, access_token, datas):
     headers = {'Content-Type': 'application/json'}
-    send(HOST, PORT, access_token, headers, datas)
+    send(host, port, access_token, headers, datas)
     
 def send(host, port, access_token, headers, datas):
     r = requests.post('http://' + host + ':' + str(port) + '/api/v1/' + access_token + '/telemetry', data=datas, headers=headers)
