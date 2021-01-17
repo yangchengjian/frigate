@@ -18,7 +18,6 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
-from frigate.amqp import send_frame_to_recognize, process_message
 from frigate.config import FrigateConfig, CameraConfig, MqttConfig, HttpConfig
 from frigate.const import RECORD_DIR, CLIPS_DIR, CACHE_DIR
 from frigate.detector import detect_age_and_gender
@@ -415,11 +414,11 @@ class CameraState():
             self.previous_frame_id = frame_id
 
 class TrackedObjectProcessor(threading.Thread):
-    def __init__(self, config: FrigateConfig, mqtt_config: MqttConfig, http_config: HttpConfig, amqp_connection, mqtt_client, tracked_objects_queue, event_queue, event_processed_queue, stop_event):
+    def __init__(self, config: FrigateConfig, mqtt_config: MqttConfig, http_config: HttpConfig, amqp_publisher, mqtt_client, tracked_objects_queue, event_queue, event_processed_queue, stop_event):
         threading.Thread.__init__(self)
         self.name = "detected_frames_processor"
         self.config = config
-        self.amqp_connection = amqp_connection
+        self.amqp_publisher = amqp_publisher
         self.http_config = http_config
         self.client = mqtt_client
         self.host = mqtt_config.host
@@ -448,7 +447,7 @@ class TrackedObjectProcessor(threading.Thread):
                 frame_base64 = base64.b64encode(frame_buffer).decode()
                 timestamp = datetime.datetime.now().timestamp() * 1000
                 datas = json.dumps({"host": self.http_config.host, "port": self.http_config.port, "access_token": self.http_config.user, "current_frame_time": timestamp, "current_frame": frame_base64})
-                send_frame_to_recognize(self.amqp_connection, datas)
+                amqp_publisher.send_frame_to_recognize(datas)
 
                 ## POST to server through HTTP
                 current_frame_bgr = cv2.cvtColor(current_frame, cv2.COLOR_BGR2RGB)

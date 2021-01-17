@@ -4,12 +4,11 @@ import threading
 
 import paho.mqtt.client as mqtt
 
-from frigate.amqp import send_config_to_recognize, send_sync_to_recognize
 from frigate.config import MqttConfig, HttpConfig
 
 logger = logging.getLogger(__name__)
 
-def create_mqtt_client(config: MqttConfig, http_config: HttpConfig, amqp_connection):
+def create_mqtt_client(config: MqttConfig, http_config: HttpConfig, amqp_publisher):
     print("create_mqtt_client")
     client = mqtt.Client(client_id=config.client_id)
 
@@ -33,7 +32,7 @@ def create_mqtt_client(config: MqttConfig, http_config: HttpConfig, amqp_connect
         client.publish(config.topic_prefix+'/telemetry', '{\'status\': \'online\'}', retain=True) 
         ## SEND config to Recognize
         datas = json.dumps({"host": http_config.host, "port": http_config.port, "access_token": http_config.user})
-        send_config_to_recognize(amqp_connection, datas)
+        amqp_publisher.send_config_to_recognize(datas)
 
     def on_message(client, userdata, message):
         payload = json.loads(message.payload.decode())
@@ -44,7 +43,7 @@ def create_mqtt_client(config: MqttConfig, http_config: HttpConfig, amqp_connect
             params_json['host'] = http_config.host
             params_json['port'] = http_config.port
             params_json['access_token'] = http_config.user
-            send_sync_to_recognize(amqp_connection, json.dumps(params_json))
+            amqp_publisher.send_sync_to_recognize(json.dumps(params_json))
 
     client.on_connect = on_connect
     client.on_message = on_message
