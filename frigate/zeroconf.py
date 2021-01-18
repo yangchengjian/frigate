@@ -45,7 +45,7 @@ def broadcast_zeroconf(frigate_id):
         ZEROCONF_TYPE,
         name=f"{frigate_id}.{ZEROCONF_TYPE}",
         addresses=[host_ip_pton],
-        port=5000,
+        port=5001,
     )
 
     logger.info("Starting Zeroconf broadcast")

@@ -16,7 +16,7 @@ services:
         tmpfs:
           size: 100000000
     ports:
-      - "5001:5000"
+      - "5001:5001"
       - "1935:1935" # RTMP feeds
     environment:
       FRIGATE_RTSP_VIEWER: "guest"
