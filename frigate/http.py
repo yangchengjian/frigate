@@ -275,7 +275,10 @@ def send_to_server(host, port, access_token, datas):
     send(host, port, access_token, headers, datas)
     
 def send(host, port, access_token, headers, datas):
-    r = requests.post('http://' + host + ':' + str(port) + '/api/v1/' + access_token + '/telemetry', data=datas, headers=headers)
-    logger.info(f"TrackedObjectProcessor send_to_server response: {r}")
-    logger.info(f"TrackedObjectProcessor send_to_server response.text: {r.text}")
-    logger.info(f"TrackedObjectProcessor send_to_server response.status_code: {r.status_code}")
+    try:
+        r = requests.post('http://' + host + ':' + str(port) + '/api/v1/' + access_token + '/telemetry', data=datas, headers=headers)
+        logger.info(f"TrackedObjectProcessor send_to_server response: {r}")
+        logger.info(f"TrackedObjectProcessor send_to_server response.text: {r.text}")
+        logger.info(f"TrackedObjectProcessor send_to_server response.status_code: {r.status_code}")
+    except Exception as e:
+        print(f"HTTP send except error: {e}")

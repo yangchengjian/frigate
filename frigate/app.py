@@ -218,7 +218,7 @@ class FrigateApp():
         
         signal.signal(signal.SIGTERM, receiveSignal)
 
-        self.flask_app.run(host='127.0.0.1', port=5000, debug=False)
+        self.flask_app.run(host='127.0.0.1', port=5001, debug=False)
         self.stop()
     
     def stop(self):

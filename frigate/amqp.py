@@ -16,23 +16,26 @@ class Publisher:
         self.connection = None
         
     def connect(self):
-        self.params = pika.ConnectionParameters(host=self.host, heartbeat=600,
+        try:
+            self.params = pika.ConnectionParameters(host=self.host, heartbeat=600,
                                        blocked_connection_timeout=300)
-        self.connection = pika.BlockingConnection(self.params)
+            self.connection = pika.BlockingConnection(self.params)
 
-        channel = self.connection.channel()
-        channel.queue_declare(queue='from_recognize_frame')
+            channel = self.connection.channel()
+            channel.queue_declare(queue='from_recognize_frame')
 
-        def callback_from_recognize(ch, method, properties, body):
-            print(f"AMQP callback_from_recognize method: {method}, properties: {properties}")
-            body_json = json.loads(body.decode())
-            print(f"AMQP callback_from_recognize recognize_result : {body_json['recognize_result']}")
-            ## POST recognize_result to server
-            send_to_server(body)
+            def callback_from_recognize(ch, method, properties, body):
+                print(f"AMQP callback_from_recognize method: {method}, properties: {properties}")
+                body_json = json.loads(body.decode())
+                print(f"AMQP callback_from_recognize recognize_result : {body_json['recognize_result']}")
+                ## POST recognize_result to server
+                send_to_server(body)
 
-        print('AMQP [*] Waiting for messages.')
-        channel.basic_consume(queue='from_recognize_frame',
+            print('AMQP [*] Waiting for messages.')
+            channel.basic_consume(queue='from_recognize_frame',
                           on_message_callback=callback_from_recognize, auto_ack=True)
+        except Exception as e:
+            print(f"AMQP connect except error: {e}")
 
     def send_config_to_recognize(self, message):
         print(f"AMQP send_config_to_recognize from_frigate_config")
