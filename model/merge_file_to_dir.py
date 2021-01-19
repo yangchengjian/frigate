@@ -8,16 +8,21 @@ import shutil
 def split_dir(src_path, dst_path):
   files = os.listdir(src_path)
   for file in files:
-    # dir = re.match("\d+[\w_]\d+[\w_]\d", file).group()  # '53_0_3'
-    # dir = re.match("\d+[\w_]\d+", file).group() # '53_0'
-    dir = re.match("\d+", file).group() # '53'
-    print('dir: ' + dir)
-    if os.path.isdir(dst_path +'/' + dir):
-      shutil.copyfile(src_path + '/' + file, dst_path + '/' + dir + '/' + file)
+    matchObj = re.match("\d+[\w_]\d+[\w_]2", file)  # '53_0_3'
+    # matchObj = re.match("\d+[\w_]\d+", file) # '53_0'
+    # matchObj = re.match("\d+", file) # '53'
+    if matchObj:
+        list = matchObj.group().split('_')
+        dir = list[1]
+        print('dir: ' + dir)
+        if os.path.isdir(dst_path +'/' + dir):
+            shutil.copyfile(src_path + '/' + file, dst_path + '/' + dir + '/' + file)
+        else:
+            os.mkdir(dst_path + '/' + dir)
+            shutil.copyfile(src_path + '/' + file, dst_path + '/' + dir + '/' + file)
     else:
-      os.mkdir(dst_path + '/' + dir)
-      shutil.copyfile(src_path + '/' + file, dst_path + '/' + dir + '/' + file)
+        print('No Match')
 
 
 if __name__ == '__main__':
-  split_dir("/Volumes/t5/prg/dataset/UTKFace/aligned&cropped-faces/UTKFace", "/Users/yangchengjian/UTKFace_AGE")
+  split_dir("/Volumes/t5/prg/dataset/UTKFace/aligned&cropped-faces/UTKFace", "/Volumes/t5/prg/dataset/UTKFace/aligned&cropped-faces/UTKFace_GENDER_Asia")

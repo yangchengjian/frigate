@@ -24,15 +24,15 @@ socket.socket = socks.socksocket
 # data = ImageClassifierDataLoader.from_folder(image_path)
 
 # 本地导入
-data = ImageClassifierDataLoader.from_folder("/Users/yangchengjian/test")
+data = ImageClassifierDataLoader.from_folder("/Volumes/t5/prg/dataset/UTKFace/aligned&cropped-faces/UTKFace_GENDER_Asia")
 train_data, test_data = data.split(0.9)
 
 model = image_classifier.create(train_data)
 
 loss, accuracy = model.evaluate(test_data)
 
-model.export(export_dir='.', tflite_filename='test-age-model.tflite') # 导出模型
-model.export(export_dir='.', label_filename='test-age-labels.txt', export_format=ExportFormat.LABEL)  # 导出标签
+model.export(export_dir='.', tflite_filename='gender-asia-model.tflite') # 导出模型
+model.export(export_dir='.', label_filename='gender-asia-labels.txt', export_format=ExportFormat.LABEL)  # 导出标签
 
 def get_label_color(val1, val2):
   if val1 == val2:
