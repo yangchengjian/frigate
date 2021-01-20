@@ -8,7 +8,7 @@ import shutil
 def split_dir(src_path, dst_path):
   files = os.listdir(src_path)
   for file in files:
-    matchObj = re.match("\d+[\w_]\d+[\w_]2", file)  # '53_0_3'
+    matchObj = re.match("\d+[\w_]\d+[\w_]2[\w_]", file)  # '53_0_3'
     # matchObj = re.match("\d+[\w_]\d+", file) # '53_0'
     # matchObj = re.match("\d+", file) # '53'
     if matchObj:
