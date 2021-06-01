@@ -22,6 +22,9 @@ from frigate.const import RECORD_DIR, CLIPS_DIR, CACHE_DIR
 from frigate.edgetpu import load_labels
 from frigate.util import SharedMemoryFrameManager, draw_box_with_label, calculate_region
 
+# 检测年龄和性别
+from frigate.detector import detect_age_and_gender
+
 logger = logging.getLogger(__name__)
 
 PATH_TO_LABELS = '/labelmap.txt'
@@ -355,7 +358,7 @@ class CameraState():
             if frame_time - updated_obj.last_published > 5 and updated_obj.last_updated > updated_obj.last_published:
                 # call event handlers
                 for c in self.callbacks['update']:
-                    c(self.name, updated_obj, frame_time)
+                    c(self.name, updated_obj, frame_time, current_frame, current_detections[id])
                 updated_obj.last_published = frame_time
 
         for id in removed_ids:
@@ -440,10 +443,16 @@ class TrackedObjectProcessor(threading.Thread):
         def start(camera, obj: TrackedObject, current_frame_time):
             self.event_queue.put(('start', camera, obj.to_dict()))
 
-        def update(camera, obj: TrackedObject, current_frame_time):
+        def update(camera, obj: TrackedObject, current_frame_time, current_frame, obj_data):
             after = obj.to_dict()
             message = { 'before': obj.previous, 'after': after, 'type': 'new' if obj.previous['false_positive'] else 'update' }
             self.client.publish(f"{self.topic_prefix}/events", json.dumps(message), retain=False)
+
+            ## 检测年龄和性别
+            timestamp = datetime.datetime.now().timestamp() * 1000
+            pre_results = detect_age_and_gender(current_frame, timestamp, obj_data['region'])
+            self.client.publish(f"{self.topic_prefix}/age_and_gender", json.dumps(pre_results), retain=False)
+
             obj.previous = after
 
         def end(camera, obj: TrackedObject, current_frame_time):

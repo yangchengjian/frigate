@@ -3,10 +3,13 @@ ARG WHEELS_VERSION
 ARG FFMPEG_VERSION
 FROM blakeblackshear/frigate-wheels:${WHEELS_VERSION}-${ARCH} as wheels
 FROM blakeblackshear/frigate-ffmpeg:${FFMPEG_VERSION}-${ARCH} as ffmpeg
-FROM frigate-web as web
+FROM frigate-web:latest as web
 
 FROM ubuntu:20.04
 LABEL maintainer "blakeb@blakeshome.com"
+
+# 修改为国内镜像
+# ADD sources.list /etc/apt/
 
 COPY --from=ffmpeg /usr/local /usr/local/
 

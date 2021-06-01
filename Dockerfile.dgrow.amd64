@@ -1,0 +1,20 @@
+## 直接从原有的版本构建，只复制修改的源文件到容器中
+FROM frigate-web:latest as web
+
+FROM blakeblackshear/frigate:0.8.4-amd64
+LABEL maintainer "blakeb@blakeshome.com"
+
+# model
+COPY model/age-labels.txt /
+COPY model/age-model.tflite /
+COPY model/gender-labels.txt /
+COPY model/gender-model.tflite /
+COPY model/haarcascade_frontalface_default.xml /
+
+# source
+WORKDIR /opt/frigate/
+ADD frigate frigate/
+
+# web
+COPY --from=web /opt/frigate/build web/
+

@@ -203,7 +203,7 @@ ${Object.keys(objectMaskPoints)
         content={
           <p>
             This tool can help you create masks & zones for your {camera} camera. When done, copy each mask
-            configuration into your <code className="font-mono">config.yml</code> file restart your Frigate instance to
+            configuration into your <code className="font-mono">config.yml</code> file restart your instance to
             save your changes.
           </p>
         }
